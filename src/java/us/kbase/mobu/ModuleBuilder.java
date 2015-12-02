@@ -2,12 +2,14 @@ package us.kbase.mobu;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.PrintStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
 import org.apache.commons.lang.StringUtils;
 
@@ -30,6 +32,9 @@ public class ModuleBuilder {
     private static final String COMPILE_COMMAND  = "compile";
     private static final String HELP_COMMAND     = "help";
     private static final String TEST_COMMAND     = "test";
+    private static final String VERSION_COMMAND     = "version";
+    
+    public static final String VERSION = "0.1.0";
     
     
     public static void main(String[] args) throws Exception {
@@ -59,6 +64,10 @@ public class ModuleBuilder {
         // add the 'test' command
         TestCommandArgs testArgs = new TestCommandArgs();
         jc.addCommand(TEST_COMMAND, testArgs);
+
+        // add the 'version' command
+        VersionCommandArgs versionArgs = new VersionCommandArgs();
+        jc.addCommand(VERSION_COMMAND, versionArgs);
 
     	// parse the arguments and gracefully catch any errors
     	try {
@@ -93,7 +102,9 @@ public class ModuleBuilder {
 	    	returnCode = runCompileCommand(compileArgs,jc);
         } else if(jc.getParsedCommand().equals(TEST_COMMAND)) {
             returnCode = runTestCommand(testArgs,jc);
-	    } 
+	    } else if (jc.getParsedCommand().equals(VERSION_COMMAND)) {
+	        returnCode = runVersionCommand(versionArgs, jc);
+	    }
 	    
 	    if(returnCode!=0) {
 	    	System.exit(returnCode);
@@ -108,7 +119,8 @@ public class ModuleBuilder {
     	if(validateArgs.modules.size()==0) {
     		validateArgs.modules.add(".");
     	}
-    	ModuleValidator mv = new ModuleValidator(validateArgs.modules,validateArgs.verbose);
+    	ModuleValidator mv = new ModuleValidator(validateArgs.modules,validateArgs.verbose,
+    	        validateArgs.methodStoreUrl);
     	return mv.validateAll();
 	}
 
@@ -155,7 +167,7 @@ public class ModuleBuilder {
 	}
 
 	public static int runCompileCommand(CompileCommandArgs a, JCommander jc) {
-    	
+    	printVersion();
     	// Step 1: convert list of args to a  Files (this must be defined because it is required)
     	File specFile = null;
     	try {
@@ -202,7 +214,8 @@ public class ModuleBuilder {
 			        a.perlPsgiName, a.perlEnableRetries, a.pyClientSide, a.pyClientName, 
 			        a.pyServerSide, a.pyServerName, a.pyImplName, a.javaClientSide, 
 			        a.javaServerSide, a.javaPackageParent, a.javaSrcDir, a.javaLibDir, 
-			        a.javaBuildXml, a.javaGwtPackage, true, outDir, a.jsonSchema, a.makefile);
+			        a.javaBuildXml, a.javaGwtPackage, a.rClientSide, a.rClientName, 
+                    a.rServerSide, a.rServerName, a.rImplName, true, outDir, a.jsonSchema, a.makefile);
 		} catch (Exception e) {
 			System.err.println("Error compiling KIDL specfication:");
 			System.err.println(e.getMessage());
@@ -229,14 +242,8 @@ public class ModuleBuilder {
     }
     
     /**
-     * Runs the module initialization command - this creates a new module in the relative directory name given.
-     * There's only a couple of possible arguments here in the initArgs:
-     * userName (required) - the user's Github user name, used to set up some optional fields
-     * moduleNames (required) - this catchall represents the module's name. Any whitespace (e.g. token breaks) 
-     * are replaced with underscores. So if a user runs:
-     *   kb-sdk init my new module
-     * they get a module called "my_new_module" in a directory of the same name.
-     * @param initArgs
+     * Runs the module test command - this runs tests in local docker container.
+     * @param testArgs
      * @param jc
      * @return
      */
@@ -254,10 +261,32 @@ public class ModuleBuilder {
         return 0;
     }
 
+    private static void printVersion() {
+        String gitCommit = null;
+        try {
+            Properties gitProps = new Properties();
+            InputStream is = ModuleBuilder.class.getResourceAsStream("git.properties");
+            gitProps.load(is);
+            is.close();
+            gitCommit = gitProps.getProperty("commit");
+        } catch (Exception ignore) {}
+        System.out.println("KBase SDK version " + VERSION + (gitCommit == null ? "" : (" (commit " + gitCommit + ")")));
+    }
+    
+    private static int runVersionCommand(VersionCommandArgs testArgs, JCommander jc) {
+        printVersion();
+        return 0;
+    }
+    
     @Parameters(commandDescription = "Validate a module or modules.")
     private static class ValidateCommandArgs {
     	@Parameter(names={"-v","--verbose"}, description="Show verbose output")
         boolean verbose = false;
+    	
+    	@Parameter(names={"-m", "--method_store"}, description="Narrative Method Store URL " +
+    			"(default is https://ci.kbase.us/services/narrative_method_store/rpc)")
+    	String methodStoreUrl = "https://ci.kbase.us/services/narrative_method_store/rpc";
+    	
     	@Parameter(description="[path to the module directories]")
         List<String> modules;
     }
@@ -278,7 +307,7 @@ public class ModuleBuilder {
     	boolean example = false;
     	
     	@Parameter(names={"-l","--language"}, description="Choose a language for developing " + 
-    			" code in your module. You can currently choose from Python, Perl, and Java " + 
+    			" code in your module. You can currently choose from Python, Perl, R and Java " + 
     			"(default=Python)")
     	String language = ModuleInitializer.DEFAULT_LANGUAGE;
     	
@@ -314,7 +343,7 @@ public class ModuleBuilder {
 
     	@Parameter(names="--plclname", description="Generate a Perl client with the name provided optionally " +
         		"prefixed by subdirectories separated by :: as in the standard perl module syntax (e.g. "+
-    			"Bio::KBase::MyModule::Client.pm, overrides the --pl option)")//, metaVar = "<perl-client-name>")
+    			"Bio::KBase::MyModule::Client, overrides the --pl option)")//, metaVar = "<perl-client-name>")
         String perlClientName = null;
 
     	@Parameter(names="--plsrv", description="Generate a Perl server with a " +
@@ -323,14 +352,14 @@ public class ModuleBuilder {
 
     	@Parameter(names="--plsrvname", description="Generate a Perl server with with the " +
     			"name provided, optionally prefixed by subdirectories separated by :: as "+
-    			"in the standard perl module syntax (e.g. Bio::KBase::MyModule::Server.pm, "+
+    			"in the standard perl module syntax (e.g. Bio::KBase::MyModule::Server, "+
     			"overrides the --plserv option).  If set, Perl clients will be generated too.")
     			//, metaVar = "<perl-server-name>")
         String perlServerName = null;
 
     	@Parameter(names="--plimplname", description="Generate a Perl server implementation with the " +
     			"name provided, optionally prefixed by subdirectories separated by :: as "+
-    			"in the standard Perl module syntax (e.g. Bio::KBase::MyModule::Impl.pm). "+
+    			"in the standard Perl module syntax (e.g. Bio::KBase::MyModule::Impl). "+
     			"If set, Perl server and client code will be generated too.")//, metaVar = "<perl-impl-name>")
         String perlImplName = null;
 
@@ -346,7 +375,7 @@ public class ModuleBuilder {
 
     	@Parameter(names="--pyclname", description="Generate a Python client with with the " +
     			"name provided, optionally prefixed by subdirectories separated by '.' as "+
-    			"in the standard Python module syntax (e.g. biokbase.mymodule.client.py,"+
+    			"in the standard Python module syntax (e.g. biokbase.mymodule.client,"+
     			"overrides the --py option).")//, metaVar = "<py-client-name>")
         String pyClientName = null;
 
@@ -356,13 +385,13 @@ public class ModuleBuilder {
 
     	@Parameter(names="--pysrvname", description="Generate a Python server with the " +
     			"name provided, optionally prefixed by subdirectories separated by '.' as "+
-    			"in the standard Python module syntax (e.g. biokbase.mymodule.server.py,"+
+    			"in the standard Python module syntax (e.g. biokbase.mymodule.server,"+
     			"overrides the --pysrv option).")//, metaVar = "<py-server-name>")
         String pyServerName = null;
 
-    	@Parameter(names="--pyimplname", description="Generate a Python server with the " +
+    	@Parameter(names="--pyimplname", description="Generate a Python server implementation with the " +
     			"name provided, optionally prefixed by subdirectories separated by '.' as "+
-    			"in the standard Python module syntax (e.g. biokbase.mymodule.server.py)." +
+    			"in the standard Python module syntax (e.g. biokbase.mymodule.impl)." +
     			" If set, Python server and client code will be generated too.")//, metaVar = "<py-impl-name>")
         String pyImplName = null;
 
@@ -393,6 +422,31 @@ public class ModuleBuilder {
         		"copies of generated classes for GWT clients)")//, metaVar="<java-gwt-pckg>")     
         String javaGwtPackage = null;
 
+        @Parameter(names="--r", description="Generate a Python client with a standard default name")
+        boolean rClientSide = false;
+
+        @Parameter(names="--rclname", description="Generate an R client with with the " +
+                "name provided, optionally prefixed by subdirectories separated by '/' as "+
+                "in the standard file path syntax (e.g. biokbase/mymodule/client,"+
+                "overrides the --r option).")
+        String rClientName = null;
+
+        @Parameter(names="--rsrv", description="Generate an R server with a " +
+                "standard default name.  If set, Python clients will automatically be generated too.")
+        boolean rServerSide = false;
+
+        @Parameter(names="--rsrvname", description="Generate an R server with the " +
+                "name provided, optionally prefixed by subdirectories separated by '/' as "+
+                "in the standard file path syntax (e.g. biokbase/mymodule/server,"+
+                "overrides the --rsrv option).")
+        String rServerName = null;
+
+        @Parameter(names="--rimplname", description="Generate an R server implementation with the " +
+                "name provided, optionally prefixed by subdirectories separated by '/' as "+
+                "in the standard file path syntax (e.g. biokbase/mymodule/impl)." +
+                " If set, R server and client code will be generated too.")
+        String rImplName = null;
+
     	@Parameter(names="--jsonschema",description="Generate JSON schema documents for the types in the output folder specified.")//, metaVar="<json-schema>")
         String jsonSchema = null;
 
@@ -411,6 +465,9 @@ public class ModuleBuilder {
     private static class TestCommandArgs {
     }
     
+    @Parameters(commandDescription = "Print current version of kb-sdk.")
+    private static class VersionCommandArgs {
+    }
     
     
     
