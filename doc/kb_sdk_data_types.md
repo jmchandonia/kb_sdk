@@ -68,6 +68,8 @@ Since IDs are system assigned, it is preferrable to use names in code when creat
 - [FeatureSet](#feature-set)
 - [GenomeSet](#genome-set)
 - [Genome](#genome)
+- [DomainLibrary](#domain-library)
+- [DomainModelSet](#domain-model-set)
 - [DomainAnnotation](#domain-annotation)
 - [MSA](#msa)
 - [Tree](#tree)
@@ -1658,9 +1660,217 @@ The following is a python snippet (e.g. for use in the SDK \<module_name\>Impl.p
 
 
 
+#### <A NAME="domain-library"></A>DomainLibrary
+https://narrative.kbase.us/functional-site/#/spec/type/KBaseGeneFamilies.DomainLibrary
+
+A DomainLibrary is an object that stores data about a public set of
+domain models, all obtained from the same source (e.g., a particular
+version of Pfam or COGs).  All public DomainLibraries in KBase are in
+the workspace KBasePublicGeneDomains.
+
+##### data structure
+
+```
+    { ## KBaseGeneFamilies.DomainLibrary
+      id: 'domain_library_id',			    # KBase ID
+      source: 'domain_source', 			    # string indicating source of library (e.g., CDD, SMART, Pfam, etc)
+      source_url: 'string', 			    # ftp/http url where library can be downloaded
+      version: 'string', 			    # version of library release
+      release_date: 'date', 			    # release date of library; date in ISO 8601 format; e.g., 2014-11-26
+      program: 'program_version', 		    # program for running domain search; must be either hmmscan-3.1b1 or rpsblast-2.2.30
+      domain_prefix: 'string', 			    # prefix of domain accession defining library
+      dbxref_prefix: 'string', 			    # url prefix for db-external referencing
+      library_files: [ {			    # library files stored in Shock storage 
+      		       	 file_name: 'string',	    # file name, e.g., 'Pfam-A.hmm'
+			 shock_id: 'string',	    # ID of the file in Shock storage
+		       },
+		     ...
+                     ], 
+      domains: {					    # information about each domain in the library
+       	       'accession_1': { 		    	    # mapping of accessions to info about each domain
+				accession: 'string' 	    # accession of domain model (e.g., PF00244.1, or COG0001)
+      				cdd_id: 'string',   	    # (optional) in case of CDD, the id reported by rps-blast program
+      				name: 'string',     	    # name of domain model
+				description: 'string', 	    # description of domain model
+				length: <int>, 	    	    # length of profile
+				model_type: 'string', 	    # domain model type; one of PSSM, HMM-Family, HMM-Domain, HMM-Repeat, HMM-Motif
+				trusted_cutoff: <float>,    # (optional) trusted cutoff of domain model for HMM libraries
+			      },
+	 	 ...
+               }
+    }
+```
+
+##### setup
+The following is a python snippet (e.g. for use in the SDK \<module_name\>Impl.py file) for preparing to work with the data object.
+
+```python
+    from biokbase.workspace.client import Workspace as workspaceService
+
+    def getContext(self):
+        return self.__class__.ctx
+        
+    def __init__(self, config):
+        ctx = self.getContext()
+        self.workspaceURL = config['workspace-url']
+        self.ws = workspaceService(self.workspaceURL, token=ctx['token'])
+
+        self.scratch = os.path.abspath(config['scratch'])
+        if not os.path.exists(self.scratch):
+            os.makedirs(self.scratch)
+           
+    # target is a list for collecting log messages
+    def log(self, target, message):
+        # we should do something better here...
+        if target is not None:
+            target.append(message)
+        print(message)
+        sys.stdout.flush()
+```
+
+##### obtaining
+The following is a python snippet (e.g. for use in the SDK \<module_name\>Impl.py file) for retrieving the data object.
+
+```
+```
+
+##### using
+The following is a python snippet (e.g. for use in the SDK \<module_name\>Impl.py file) for manipulating the data object.
+
+```
+```
+
+##### storing
+The following is a python snippet (e.g. for use in the SDK \<module_name\>Impl.py file) for storing the data object.
+
+```
+```
+[\[back to data type list\]](#data-type-list)
+
+
+
+#### <A NAME="domain-model-set"></A>DomainModelSet
+https://narrative.kbase.us/functional-site/#/spec/type/KBaseGeneFamilies.DomainModelSet
+
+A DomainModelSet object stores info about sets of DomainLibraries.
+Each DomainModelSet, when scanned against a Genome, reslts in a single
+DomainAnnotation object.  All public DomainModelSets in KBase are in
+the workspace KBasePublicGeneDomains.
+
+##### data structure
+
+```
+    { ## KBaseGeneFamilies.DomainModelSet
+      set_name: 'string',						    # user defined name of set
+      domain_libs: { 'domain_prefix_1': 'ws_lib_id_1',			    # mapping of domain prefixes (e.g., "PF") to DomainLibrary objects stored in a workspace
+           	     'domain_prefix_2': 'ws_lib_id_2',
+                     ...
+                   },
+      domain_prefix_to_dbxref_url: { 'domain_prefix_1': 'dbxref_prefix_1',  # mapping of domain prefixes (e.g., "PF") to URL prefixes for external links (e.g., "http://pfam.xfam.org/family/")
+      				     'domain_prefix_2': 'dbxref_prefix_2',
+                                     ...
+                                   },
+      domain_accession_to_description: { 'domain_accession_1': 'description_1', # mapping of domain accession codes to descriptions
+      				         'domain_accession_2': 'description_2',
+					 ...
+                                       }
+    }
+```
+
+
+
+##### setup
+The following is a python snippet (e.g. for use in the SDK \<module_name\>Impl.py file) for preparing to work with the data object.
+
+```python
+    from biokbase.workspace.client import Workspace as workspaceService
+
+    def getContext(self):
+        return self.__class__.ctx
+        
+    def __init__(self, config):
+        ctx = self.getContext()
+        self.workspaceURL = config['workspace-url']
+        self.ws = workspaceService(self.workspaceURL, token=ctx['token'])
+
+        self.scratch = os.path.abspath(config['scratch'])
+        if not os.path.exists(self.scratch):
+            os.makedirs(self.scratch)
+           
+    # target is a list for collecting log messages
+    def log(self, target, message):
+        # we should do something better here...
+        if target is not None:
+            target.append(message)
+        print(message)
+        sys.stdout.flush()
+```
+
+##### obtaining
+The following is a python snippet (e.g. for use in the SDK \<module_name\>Impl.py file) for retrieving the data object.
+
+```
+```
+
+##### using
+The following is a python snippet (e.g. for use in the SDK \<module_name\>Impl.py file) for manipulating the data object.
+
+```
+```
+
+##### storing
+The following is a python snippet (e.g. for use in the SDK \<module_name\>Impl.py file) for storing the data object.
+
+```
+```
+[\[back to data type list\]](#data-type-list)
+
+
+
 #### <A NAME="domain-annotation"></A>DomainAnnotation
 https://narrative.kbase.us/functional-site/#/spec/type/KBaseGeneFamilies.DomainAnnotation
+
+A DomainAnnotation object stores the results of annotating the proteins
+in a genome with one or more domain databases (e.g., Pfam or COGs)
+
 ##### data structure
+
+```
+    { ## KBaseGeneFamilies.DomainAnnotation
+      genome_ref: 'genome_ref',			# reference to KBaseGenomes.Genome
+      used_dms_ref: 'dms_ref', 			# reference to KBaseGeneFamilies.DomainModelSet
+      data: { 'contig_id_1' : [ { feature_id: 'string', # feature with a domain annotation
+      	      		          feature_start: <int>, # start position of feature in contig, 0-indexed
+				  feature_stop: <int>,  # stop position of feature in contig, 0-indexed, always greater than feature_start regardless of strand
+				  feature_dir: <-1/1>, 	# direction of feature in contig (-1 is '-' strand, 1 is '+' strand)
+				  { 	       		# mapping of domain model accessions to hits in this feature
+				    'domain_accession_1': [ { 'start_in_feature': <int>, # start position of domain relative to beginning of feature, 0-indexed
+				    			      'stop_in_feature': <int>,    # stop position of domain relative to beginning of feature, 0-indexed
+							      'evalue': <float>, 	   # E-value of hit
+							      'bitscore': <float>, 	   # bit score of hit
+							      'domain_coverage': <float>,  # fraction of domain model aligned to protein (0-1)
+							    },
+							    ...
+							  ],
+				    ...
+				  },
+	      ...
+
+            },
+      contig_to_size_and_feature_count: { 'contig_id_1' : { size: <int>,    # size of contig in nucleotides
+      					  		    features: <int> # number of features in the contig
+							  },
+					  ...
+                                        },
+      feature_to_contig_and_index: { 'feature_id_1' : { contig_id: 'contig_ref' # reference to the contig the feature is in
+      				     		        feature_index: <int>	# 0-based index of where the feature is in the 'data' array for the contig
+						      },
+                                     ...
+                                   }
+    }
+```
+
+
 
 ##### setup
 The following is a python snippet (e.g. for use in the SDK \<module_name\>Impl.py file) for preparing to work with the data object.
