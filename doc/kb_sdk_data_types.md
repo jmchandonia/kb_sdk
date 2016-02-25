@@ -1675,28 +1675,28 @@ the workspace KBasePublicGeneDomains.
       id: 'domain_library_id',			    # KBase ID
       source: 'domain_source', 			    # string indicating source of library (e.g., CDD, SMART, Pfam, etc)
       source_url: 'string', 			    # ftp/http url where library can be downloaded
-      version: 'string', 			    # version of library release
+      version: 'string',					# version of library release
       release_date: 'date', 			    # release date of library; date in ISO 8601 format; e.g., 2014-11-26
       program: 'program_version', 		    # program for running domain search; must be either hmmscan-3.1b1 or rpsblast-2.2.30
       domain_prefix: 'string', 			    # prefix of domain accession defining library
       dbxref_prefix: 'string', 			    # url prefix for db-external referencing
-      library_files: [ {			    # library files stored in Shock storage 
-      		       	 file_name: 'string',	    # file name, e.g., 'Pfam-A.hmm'
-			 shock_id: 'string',	    # ID of the file in Shock storage
-		       },
-		     ...
+      library_files: [ {					# library files stored in Shock storage 
+						file_name: 'string', # file name, e.g., 'Pfam-A.hmm'
+						shock_id: 'string'	# ID of the file in Shock storage
+						},
+						...
                      ], 
-      domains: {					    # information about each domain in the library
-       	       'accession_1': { 		    	    # mapping of accessions to info about each domain
-				accession: 'string' 	    # accession of domain model (e.g., PF00244.1, or COG0001)
-      				cdd_id: 'string',   	    # (optional) in case of CDD, the id reported by rps-blast program
-      				name: 'string',     	    # name of domain model
-				description: 'string', 	    # description of domain model
-				length: <int>, 	    	    # length of profile
-				model_type: 'string', 	    # domain model type; one of PSSM, HMM-Family, HMM-Domain, HMM-Repeat, HMM-Motif
-				trusted_cutoff: <float>,    # (optional) trusted cutoff of domain model for HMM libraries
-			      },
-	 	 ...
+      domains: {						    # information about each domain in the library
+       	       'accession_1': {	    	    # mapping of accessions to info about each domain
+								accession: 'string', # accession of domain model (e.g., PF00244.1, or COG0001)
+								cdd_id: 'string',    # (optional) in case of CDD, the id reported by rps-blast program
+			      				name: 'string',		 # name of domain model,
+								description: 'string', # description of domain model
+								length: <int>,		 # length of profile
+								model_type: 'string', # domain model type; one of PSSM, HMM-Family, HMM-Domain, HMM-Repeat, HMM-Motif
+								trusted_cutoff: <float> # (optional) trusted cutoff of domain model for HMM libraries
+							  },
+				...
                }
     }
 ```
@@ -1731,7 +1731,11 @@ The following is a python snippet (e.g. for use in the SDK \<module_name\>Impl.p
 ##### obtaining
 The following is a python snippet (e.g. for use in the SDK \<module_name\>Impl.py file) for retrieving the data object.
 
-```
+```python
+        self.log(console, 'getting domainlibrary object: '+params['workspace_name']+'/'+params['domainlibrary_name'])
+		domainlibraryRef = params['workspace_name']+'/'+params['domainlibrary_name']
+		domainlibrary = ws.get_objects([{'ref': domainlibraryRef}])[0]['data']
+						
 ```
 
 ##### using
@@ -1761,18 +1765,18 @@ the workspace KBasePublicGeneDomains.
 
 ```
     { ## KBaseGeneFamilies.DomainModelSet
-      set_name: 'string',						    # user defined name of set
-      domain_libs: { 'domain_prefix_1': 'ws_lib_id_1',			    # mapping of domain prefixes (e.g., "PF") to DomainLibrary objects stored in a workspace
-           	     'domain_prefix_2': 'ws_lib_id_2',
+      set_name: 'string',								# user defined name of set
+      domain_libs: { 'domain_prefix_1': 'ws_lib_id_1',	# mapping of domain prefixes (e.g., "PF") to DomainLibrary objects stored in a workspace
+					 'domain_prefix_2': 'ws_lib_id_2',
                      ...
                    },
       domain_prefix_to_dbxref_url: { 'domain_prefix_1': 'dbxref_prefix_1',  # mapping of domain prefixes (e.g., "PF") to URL prefixes for external links (e.g., "http://pfam.xfam.org/family/")
-      				     'domain_prefix_2': 'dbxref_prefix_2',
+									 'domain_prefix_2': 'dbxref_prefix_2',
                                      ...
                                    },
       domain_accession_to_description: { 'domain_accession_1': 'description_1', # mapping of domain accession codes to descriptions
-      				         'domain_accession_2': 'description_2',
-					 ...
+										 'domain_accession_2': 'description_2',
+										 ...
                                        }
     }
 ```
@@ -1809,7 +1813,11 @@ The following is a python snippet (e.g. for use in the SDK \<module_name\>Impl.p
 ##### obtaining
 The following is a python snippet (e.g. for use in the SDK \<module_name\>Impl.py file) for retrieving the data object.
 
-```
+```python
+        self.log(console, 'getting domainmodelset object: '+params['workspace_name']+'/'+params['domainmodelset_name'])
+		domainModelSetRef = params['workspace_name']+'/'+params['domainmodelset_name']
+		domainmodelset = ws.get_objects([{'ref': domainModelSetRef}])[0]['data']
+						
 ```
 
 ##### using
@@ -1840,31 +1848,34 @@ in a genome with one or more domain databases (e.g., Pfam or COGs)
       genome_ref: 'genome_ref',			# reference to KBaseGenomes.Genome
       used_dms_ref: 'dms_ref', 			# reference to KBaseGeneFamilies.DomainModelSet
       data: { 'contig_id_1' : [ { feature_id: 'string', # feature with a domain annotation
-      	      		          feature_start: <int>, # start position of feature in contig, 0-indexed
-				  feature_stop: <int>,  # stop position of feature in contig, 0-indexed, always greater than feature_start regardless of strand
-				  feature_dir: <-1/1>, 	# direction of feature in contig (-1 is '-' strand, 1 is '+' strand)
-				  { 	       		# mapping of domain model accessions to hits in this feature
-				    'domain_accession_1': [ { 'start_in_feature': <int>, # start position of domain relative to beginning of feature, 0-indexed
-				    			      'stop_in_feature': <int>,    # stop position of domain relative to beginning of feature, 0-indexed
-							      'evalue': <float>, 	   # E-value of hit
-							      'bitscore': <float>, 	   # bit score of hit
-							      'domain_coverage': <float>,  # fraction of domain model aligned to protein (0-1)
-							    },
-							    ...
+								  feature_start: <int>, # start position of feature in contig, 0-indexed
+								  feature_stop: <int>,  # stop position of feature in contig, 0-indexed, always greater than feature_start regardless of strand
+								  feature_dir: <-1/1>, 	# direction of feature in contig (-1 is '-' strand, 1 is '+' strand)
+				   	       		  # mapping of domain model accessions to hits in this feature
+								  { 'domain_accession_1': [ { 'start_in_feature': <int>, # start position of domain relative to beginning of feature, 0-indexed
+															  'stop_in_feature': <int>,  # stop position of domain relative to beginning of feature, 0-indexed
+															  'evalue': <float>, 	       # E-value of hit
+															  'bitscore': <float>, 	   # bit score of hit
+															  'domain_coverage': <float>, # fraction of domain model aligned to protein (0-1)
+														    },
+														    ...
+														  ],
+									...
+								  }
+								},
+								...
 							  ],
-				    ...
-				  },
-	      ...
-
+			  'contig_id_2' : [ # same data structure as above ],
+			  ...
             },
       contig_to_size_and_feature_count: { 'contig_id_1' : { size: <int>,    # size of contig in nucleotides
-      					  		    features: <int> # number of features in the contig
-							  },
-					  ...
+															features: <int> # number of features in the contig
+														  },
+										  ...
                                         },
       feature_to_contig_and_index: { 'feature_id_1' : { contig_id: 'contig_ref' # reference to the contig the feature is in
-      				     		        feature_index: <int>	# 0-based index of where the feature is in the 'data' array for the contig
-						      },
+														feature_index: <int>	# 0-based index of where the feature is in the 'data' array for the contig
+													  },
                                      ...
                                    }
     }
@@ -1902,7 +1913,11 @@ The following is a python snippet (e.g. for use in the SDK \<module_name\>Impl.p
 ##### obtaining
 The following is a python snippet (e.g. for use in the SDK \<module_name\>Impl.py file) for retrieving the data object.
 
-```
+```python
+        self.log(console, 'getting domainannotation object: '+params['workspace_name']+'/'+params['domainannotation_name'])
+		domainAnnotationRef = params['workspace_name']+'/'+params['domainannotation_name']
+		domainannotation = ws.get_objects([{'ref': domainAnnotationRef}])[0]['data']
+						
 ```
 
 ##### using
