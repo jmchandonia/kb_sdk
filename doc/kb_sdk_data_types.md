@@ -1721,7 +1721,6 @@ The following is a python snippet (e.g. for use in the SDK \<module_name\>Impl.p
            
     # target is a list for collecting log messages
     def log(self, target, message):
-        # we should do something better here...
         if target is not None:
             target.append(message)
         print(message)
@@ -1869,7 +1868,6 @@ The following is a python snippet (e.g. for use in the SDK \<module_name\>Impl.p
            
     # target is a list for collecting log messages
     def log(self, target, message):
-        # we should do something better here...
         if target is not None:
             target.append(message)
         print(message)
@@ -2023,7 +2021,6 @@ The following is a python snippet (e.g. for use in the SDK \<module_name\>Impl.p
            
     # target is a list for collecting log messages
     def log(self, target, message):
-        # we should do something better here...
         if target is not None:
             target.append(message)
         print(message)
@@ -2118,9 +2115,9 @@ The following is a python snippet (e.g. for use in the SDK \<module_name\>Impl.p
 			{ my_domain_accession: [ {
 				'start_in_feature': 0,
 				'stop_in_feature': my_location[3] - 1,
-				evalue: 0.0,
-				bitscore: 100.0,
-				domain_coverage: 1
+				'evalue': 0.0,
+				'bitscore': 100.0,
+				'domain_coverage': 1.0
 				} ] } } ]
 
 		# 2) save object and provenance to workspace
